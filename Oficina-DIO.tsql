@@ -1,0 +1,146 @@
+-- Script SQL de Criação
+
+CREATE TABLE Cliente (
+  id_cliente INT PRIMARY KEY,
+  nome VARCHAR(100),
+  telefone VARCHAR(20),
+  email VARCHAR(100)
+);
+
+CREATE TABLE Veiculo (
+  id_veiculo INT PRIMARY KEY,
+  modelo VARCHAR(50),
+  placa VARCHAR(10),
+  ano INT,
+  id_cliente INT,
+  FOREIGN KEY (id_cliente) REFERENCES Cliente(id_cliente)
+);
+
+CREATE TABLE Funcionario (
+  id_funcionario INT PRIMARY KEY,
+  nome VARCHAR(100),
+  funcao VARCHAR(50),
+  salario DECIMAL(10,2)
+);
+
+CREATE TABLE Servico (
+  id_servico INT PRIMARY KEY,
+  descricao VARCHAR(100),
+  preco_base DECIMAL(10,2)
+);
+
+CREATE TABLE OrdemServico (
+  id_ordem INT PRIMARY KEY,
+  data_abertura DATE,
+  data_fechamento DATE,
+  id_veiculo INT,
+  id_funcionario INT,
+  FOREIGN KEY (id_veiculo) REFERENCES Veiculo(id_veiculo),
+  FOREIGN KEY (id_funcionario) REFERENCES Funcionario(id_funcionario)
+);
+
+CREATE TABLE ItemServico (
+  id_ordem INT,
+  id_servico INT,
+  quantidade INT,
+  preco_unitario DECIMAL(10,2),
+  PRIMARY KEY (id_ordem, id_servico),
+  FOREIGN KEY (id_ordem) REFERENCES OrdemServico(id_ordem),
+  FOREIGN KEY (id_servico) REFERENCES Servico(id_servico)
+);
+
+CREATE TABLE Peca (
+  id_peca INT PRIMARY KEY,
+  nome VARCHAR(100),
+  preco_unitario DECIMAL(10,2)
+);
+
+CREATE TABLE ItemPeca (
+  id_ordem INT,
+  id_peca INT,
+  quantidade INT,
+  PRIMARY KEY (id_ordem, id_peca),
+  FOREIGN KEY (id_ordem) REFERENCES OrdemServico(id_ordem),
+  FOREIGN KEY (id_peca) REFERENCES Peca(id_peca)
+);
+
+-- Dados para Testes
+
+-- Clientes
+INSERT INTO Cliente VALUES (1, 'Ana Silva', '11999999999', 'ana@email.com');
+INSERT INTO Cliente VALUES (2, 'Carlos Souza', '11888888888', 'carlos@email.com');
+
+-- Veículos
+INSERT INTO Veiculo VALUES (1, 'Civic', 'ABC1234', 2015, 1);
+INSERT INTO Veiculo VALUES (2, 'Fiesta', 'XYZ9876', 2012, 2);
+
+-- Funcionários
+INSERT INTO Funcionario VALUES (1, 'João Mecânico', 'Mecânico', 3000.00);
+INSERT INTO Funcionario VALUES (2, 'Maria Atendente', 'Atendente', 2000.00);
+
+-- Serviços
+INSERT INTO Servico VALUES (1, 'Troca de óleo', 100.00);
+INSERT INTO Servico VALUES (2, 'Alinhamento', 150.00);
+
+-- Peças
+INSERT INTO Peca VALUES (1, 'Filtro de óleo', 30.00);
+INSERT INTO Peca VALUES (2, 'Pneu', 250.00);
+
+-- Ordem de Serviço
+INSERT INTO OrdemServico VALUES (1, '2025-06-01', '2025-06-02', 1, 1);
+
+-- Itens de Serviço
+INSERT INTO ItemServico VALUES (1, 1, 1, 100.00);
+INSERT INTO ItemServico VALUES (1, 2, 1, 150.00);
+
+-- Itens de Peça
+INSERT INTO ItemPeca VALUES (1, 1, 1);
+INSERT INTO ItemPeca VALUES (1, 2, 2);
+
+-- Consultas SQL
+
+-- 1. Consulta
+SELECT nome, telefone FROM Cliente;
+
+-- 2. WHERE
+SELECT * FROM Veiculo WHERE ano < 2014;
+
+--3. Expressão para atributo derivado
+
+SELECT
+  id_ordem,
+  SUM(preco_unitario * quantidade) AS total_servicos
+FROM ItemServico
+GROUP BY id_ordem;
+
+--4. ORDER BY
+SELECT nome, salario FROM Funcionario ORDER BY salario DESC;
+
+--5. HAVING 
+
+SELECT
+  os.id_ordem,
+  SUM(isv.preco_unitario * isv.quantidade + p.preco_unitario * ip.quantidade) AS total
+FROM OrdemServico os
+JOIN ItemServico isv ON os.id_ordem = isv.id_ordem
+JOIN ItemPeca ip ON os.id_ordem = ip.id_ordem
+JOIN Peca p ON ip.id_peca = p.id_peca
+GROUP BY os.id_ordem
+HAVING total > 400;
+
+-- 6. Junção entre tabelas 
+
+SELECT
+  os.id_ordem,
+  c.nome AS cliente,
+  v.modelo,
+  f.nome AS funcionario,
+  s.descricao AS servico,
+  isv.quantidade,
+  isv.preco_unitario
+FROM OrdemServico os
+JOIN Veiculo v ON os.id_veiculo = v.id_veiculo
+JOIN Cliente c ON v.id_cliente = c.id_cliente
+JOIN Funcionario f ON os.id_funcionario = f.id_funcionario
+JOIN ItemServico isv ON os.id_ordem = isv.id_ordem
+JOIN Servico s ON isv.id_servico = s.id_servico;
